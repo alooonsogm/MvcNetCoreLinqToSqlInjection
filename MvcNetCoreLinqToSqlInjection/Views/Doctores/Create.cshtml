@@ -1,0 +1,21 @@
+﻿<h1>Create Doctor</h1>
+
+<p>
+    <a asp-controller="Doctores" asp-action="Index">Back to List</a>
+</p>
+
+<form method="post">
+    <label>Id Doctor: </label>
+    <input type="text" name="IdDoctor" class="form-control"/>
+    <label>Apellido: </label>
+    <input type="text" name="Apellido" class="form-control" />
+    <label>Especialidad: </label>
+    <input type="text" name="Especialidad" class="form-control" />
+    <label>Salario: </label>
+    <input type="text" name="Salario" class="form-control" />
+    <label>Id Hospital: </label>
+    <input type="text" name="IdHospital" class="form-control" />
+    <button class="btn btn-info">
+        Create Doctor
+    </button>
+</form>
