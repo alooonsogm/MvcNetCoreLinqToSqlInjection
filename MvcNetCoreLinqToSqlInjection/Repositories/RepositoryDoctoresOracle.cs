@@ -1,44 +1,50 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Data.SqlClient;
 using MvcNetCoreLinqToSqlInjection.Models;
+using Oracle.ManagedDataAccess.Client;
 using System.Data;
+using static Azure.Core.HttpHeader;
 
 #region PROCEDURE
-//CREATE PROCEDURE SP_DELETE_DOCTOR
-//(@iddoctor int)
+//create procedure SP_DELETE_DOCTOR
+//(p_iddoctor DOCTOR.DOCTOR_NO%TYPE)
 //AS
-//	delete from DOCTOR WHERE DOCTOR_NO=@iddoctor
-//GO
+//BEGIN
+//    DELETE FROM DOCTOR WHERE DOCTOR_NO = p_iddoctor;
+//COMMIT;
+//END;
 
-//exec SP_DELETE_DOCTOR 121
+//EXECUTE SP_DELETE_DOCTOR(121);
 
-//CREATE PROCEDURE SP_UPDATE_DOCTOR
-//(@idhospital int, @apellido nvarchar(50), @especialidad nvarchar(50), @salario int, @iddoctor int)
+//create procedure SP_UPDATE_DOCTOR
+//(p_idhospital DOCTOR.HOSPITAL_COD%TYPE, p_apellido DOCTOR.APELLIDO%TYPE, p_especialidad DOCTOR.ESPECIALIDAD%TYPE,
+//p_salario DOCTOR.SALARIO%TYPE, p_iddoctor DOCTOR.DOCTOR_NO%TYPE)
 //AS
-//	update DOCTOR set HOSPITAL_COD=@idhospital, APELLIDO = @apellido, ESPECIALIDAD = @especialidad,
-//	SALARIO = @salario where DOCTOR_NO=@iddoctor;
-//GO
+//BEGIN
+//    update DOCTOR set HOSPITAL_COD=p_idhospital, APELLIDO = p_apellido, ESPECIALIDAD = p_especialidad,
+//    SALARIO = p_salario where DOCTOR_NO=p_iddoctor;
+//COMMIT;
+//END;
 
-//exec SP_UPDATE_DOCTOR 22, 'Alonso', 'Ninguna', 1, 521
+//EXECUTE SP_UPDATE_DOCTOR(22, 'Alonso', 'Pediatria', 1, 120);
 #endregion
 
 namespace MvcNetCoreLinqToSqlInjection.Repositories
 {
-    public class RepositorySqlServer: IRepositoryDoctores
+    public class RepositoryDoctoresOracle: IRepositoryDoctores
     {
-        private SqlConnection cn;
-        private SqlCommand com;
         private DataTable tablaDoctor;
+        private OracleConnection cn;
+        private OracleCommand com;
 
-        public RepositorySqlServer()
+        public RepositoryDoctoresOracle()
         {
-            string connectionString = @"Data Source=LOCALHOST\DEVELOPER;Initial Catalog=HOSPITAL;Persist Security Info=True;User ID=SA;Encrypt=True;Trust Server Certificate=True";
-            this.cn = new SqlConnection(connectionString);
-            this.com = new SqlCommand();
+            string connectionString = @"Data Source=LOCALHOST:1521/FREEPDB1; Persist Security Info=true;User Id=SYSTEM;Password=oracle";
+            this.cn = new OracleConnection(connectionString);
+            this.com = new OracleCommand();
             this.com.Connection = this.cn;
-            string sql = "select * from DOCTOR";
-            SqlDataAdapter ad = new SqlDataAdapter(sql, this.cn);
             this.tablaDoctor = new DataTable();
+            string sql = "select * from DOCTOR";
+            OracleDataAdapter ad = new OracleDataAdapter(sql, this.cn);
             ad.Fill(this.tablaDoctor);
         }
 
@@ -61,12 +67,19 @@ namespace MvcNetCoreLinqToSqlInjection.Repositories
 
         public async Task InsertDoctoresAsync(int idHospital, int idDoctor, string apellido, string especialidad, int salario)
         {
-            string sql = "insert into DOCTOR values (@idHospital, @id, @apellido, @especialidad, @salario)";
-            this.com.Parameters.AddWithValue("@idHospital", idHospital);
-            this.com.Parameters.AddWithValue("@id", idDoctor);
-            this.com.Parameters.AddWithValue("@apellido", apellido);
-            this.com.Parameters.AddWithValue("@especialidad", especialidad);
-            this.com.Parameters.AddWithValue("@salario", salario);
+            string sql = "insert into DOCTOR values (:idHospital, :id, :apellido, :especialidad, :salario)";
+            
+            OracleParameter pamIdHospital = new OracleParameter(":idHospital", idHospital);
+            OracleParameter pamIdDoctor = new OracleParameter(":id", idDoctor);
+            OracleParameter pamApellido = new OracleParameter(":apellido", apellido);
+            OracleParameter pamEspecialidad = new OracleParameter(":especialidad", especialidad);
+            OracleParameter pamSalario = new OracleParameter(":salario", salario);
+
+            this.com.Parameters.Add(pamIdHospital);
+            this.com.Parameters.Add(pamIdDoctor);
+            this.com.Parameters.Add(pamApellido);
+            this.com.Parameters.Add(pamEspecialidad);
+            this.com.Parameters.Add(pamSalario);
 
             this.com.CommandType = CommandType.Text;
             this.com.CommandText = sql;
@@ -79,7 +92,8 @@ namespace MvcNetCoreLinqToSqlInjection.Repositories
         public async Task DeleteDoctorAsync(int idDoctor)
         {
             string sql = "SP_DELETE_DOCTOR";
-            this.com.Parameters.AddWithValue("@iddoctor", idDoctor);
+            OracleParameter pamIdDoctor = new OracleParameter(":p_iddoctor", idDoctor);
+            this.com.Parameters.Add(pamIdDoctor);
             this.com.CommandType = CommandType.StoredProcedure;
             this.com.CommandText = sql;
             await this.cn.OpenAsync();
@@ -106,11 +120,13 @@ namespace MvcNetCoreLinqToSqlInjection.Repositories
         public async Task UpdateDoctorAsync(int idHospital, string apellido, string especialidad, int salario, int idDoctor)
         {
             string sql = "SP_UPDATE_DOCTOR";
-            this.com.Parameters.AddWithValue("@idHospital", idHospital);
-            this.com.Parameters.AddWithValue("@apellido", apellido);
-            this.com.Parameters.AddWithValue("@especialidad", especialidad);
-            this.com.Parameters.AddWithValue("@salario", salario);
-            this.com.Parameters.AddWithValue("@iddoctor", idDoctor);
+
+            this.com.Parameters.Add(":p_idhospital", idHospital);
+            this.com.Parameters.Add(":p_apellido", apellido);
+            this.com.Parameters.Add(":p_especialidad", especialidad);
+            this.com.Parameters.Add(":p_salario", salario);
+            this.com.Parameters.Add(":p_iddoctor", idDoctor);
+
             this.com.CommandType = CommandType.StoredProcedure;
             this.com.CommandText = sql;
             await this.cn.OpenAsync();

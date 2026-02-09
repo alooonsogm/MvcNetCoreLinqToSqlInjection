@@ -20,7 +20,7 @@ builder.Services.AddSingleton<ICoche, Coche>(x => car);
 //builder.Services.AddSingleton<ICoche, Deportivo>();
 
 //Los repos suelen ir en Transient
-builder.Services.AddTransient<RepositorySqlServer>();
+builder.Services.AddTransient<IRepositoryDoctores, RepositoryDoctoresOracle>();
 
 var app = builder.Build();
 
